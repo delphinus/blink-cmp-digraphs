@@ -1,29 +1,29 @@
---- @class blink-cmp-digraphs.FilterItem
+--- @class BlinkCmpDigraphs.FilterItem
 --- @field digraph string
 --- @field char string
 --- @field charnr integer
 
---- @class blink-cmp-digraphs.Options
---- @field filter? fun(item: blink-cmp-digraphs.FilterItem): boolean
+--- @class BlinkCmpDigraphs.Options
+--- @field filter? fun(item: BlinkCmpDigraphs.FilterItem): boolean
 
 local M = {}
 
---- @type blink-cmp-digraphs.Options
+--- @type BlinkCmpDigraphs.Options
 local default_opts = {
   filter = function(item)
     return item.charnr >= 0x20
   end,
 }
 
---- @class blink-cmp-digraphs.RawItem
+--- @class BlinkCmpDigraphs.RawItem
 --- @field digraph string
 --- @field char string
 --- @field charnr integer
 --- @field label string
 --- @field detail string
 
---- @param filter fun(item: blink-cmp-digraphs.FilterItem): boolean
---- @return blink-cmp-digraphs.RawItem[], string[]
+--- @param filter fun(item: BlinkCmpDigraphs.FilterItem): boolean
+--- @return BlinkCmpDigraphs.RawItem[], string[]
 local function build_items(filter)
   local items = {}
   local first_chars_seen = {}
@@ -51,7 +51,7 @@ local function build_items(filter)
   return items, first_chars
 end
 
---- @param opts? blink-cmp-digraphs.Options
+--- @param opts? BlinkCmpDigraphs.Options
 function M.new(opts)
   opts = vim.tbl_deep_extend("keep", opts or {}, default_opts)
   vim.validate { filter = { opts.filter, "function" } }
