@@ -14,15 +14,16 @@ legacy fallbacks (modern Neovim only).
 | type | inserts | name |
 |------|:-------:|------|
 | `oe` | `œ` | latin small ligature oe |
-| `e?` | `é` | e with acute |
+| `e'` | `é` | e with acute |
 | `>>` | `»` | right-pointing double angle quotation mark |
 | `Co` | `©` | copyright sign |
-| `=Y` | `¥` | yen sign |
+| `Ye` | `¥` | yen sign |
+| `=e` | `€` | euro sign |
 | `*a` | `α` | greek small letter alpha |
 | `->` | `→` | rightwards arrow |
-| `<=` | `≤` | less-than or equal to |
+| `=<` | `≤` | less-than or equal to |
 | `+-` | `±` | plus-minus sign |
-| `So` | `☺` | white smiling face |
+| `0u` | `☺` | white smiling face |
 
 Run `:digraphs` to see the full table built into Neovim.
 

@@ -15,11 +15,19 @@ local default_opts = {
   end,
 }
 
+--- @class blink-cmp-digraphs.RawItem
+--- @field digraph string
+--- @field char string
+--- @field charnr integer
+--- @field label string
+--- @field detail string
+
 --- @param filter fun(item: blink-cmp-digraphs.FilterItem): boolean
---- @return blink.cmp.CompletionItem[]
+--- @return blink-cmp-digraphs.RawItem[], string[]
 local function build_items(filter)
   local items = {}
-  -- Reuse one table to avoid creating garbage on every iteration.
+  local first_chars_seen = {}
+  local first_chars = {}
   local view = { digraph = "", char = "", charnr = 0 }
   for _, pair in ipairs(vim.fn.digraph_getlist(true)) do
     local digraph, char = pair[1], pair[2]
@@ -27,23 +35,28 @@ local function build_items(filter)
     view.digraph, view.char, view.charnr = digraph, char, charnr
     if filter(view) then
       table.insert(items, {
+        digraph = digraph,
+        char = char,
+        charnr = charnr,
         label = digraph .. " " .. vim.fn.strtrans(char),
-        labelDetails = { detail = ("U+%04X"):format(charnr) },
-        filterText = digraph,
-        insertText = char,
+        detail = ("U+%04X"):format(charnr),
       })
+      local first = digraph:sub(1, 1)
+      if not first_chars_seen[first] then
+        first_chars_seen[first] = true
+        table.insert(first_chars, first)
+      end
     end
   end
-  return items
+  return items, first_chars
 end
 
 --- @param opts? blink-cmp-digraphs.Options
---- @return blink-cmp-digraphs.Source
 function M.new(opts)
   opts = vim.tbl_deep_extend("keep", opts or {}, default_opts)
   vim.validate { filter = { opts.filter, "function" } }
   local self = setmetatable({}, { __index = M })
-  self.items = build_items(opts.filter)
+  self.items, self.trigger_characters = build_items(opts.filter)
   return self
 end
 
@@ -52,15 +65,51 @@ function M:enabled()
   return vim.fn.exists "*digraph_getlist" == 1
 end
 
---- @param _ blink.cmp.Context
+--- @return string[]
+function M:get_trigger_characters()
+  return self.trigger_characters
+end
+
+--- @param ctx blink.cmp.Context
 --- @param callback fun(response?: blink.cmp.CompletionResponse): nil
 --- @return fun(): nil cancel
-function M:get_completions(_, callback)
+function M:get_completions(ctx, callback)
+  local col = ctx.cursor[2]
+  -- Read up to 2 characters before the cursor. Digraphs are exactly 2
+  -- characters, so this is the prefix to filter against.
+  local prefix = ctx.line:sub(math.max(1, col - 1), col)
+  if prefix == "" then
+    callback {
+      is_incomplete_forward = false,
+      is_incomplete_backward = false,
+      items = {},
+    }
+    return function() end
+  end
+
+  local row = ctx.cursor[1] - 1
+  local edit_range = {
+    start = { line = row, character = math.max(0, col - #prefix) },
+    ["end"] = { line = row, character = col },
+  }
+
+  local matches = {}
+  for _, raw in ipairs(self.items) do
+    if raw.digraph:sub(1, #prefix) == prefix then
+      table.insert(matches, {
+        label = raw.label,
+        labelDetails = { detail = raw.detail },
+        filterText = raw.digraph,
+        textEdit = { range = edit_range, newText = raw.char },
+      })
+    end
+  end
+
   callback {
-    is_incomplete_forward = false,
-    is_incomplete_backward = false,
-    -- Deepcopy because blink.cmp may mutate items.
-    items = vim.deepcopy(self.items),
+    -- Re-query on every keystroke so the prefix recomputes.
+    is_incomplete_forward = true,
+    is_incomplete_backward = true,
+    items = matches,
   }
   return function() end
 end
