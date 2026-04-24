@@ -78,7 +78,13 @@ function M:get_completions(ctx, callback)
   -- Read up to 2 characters before the cursor. Digraphs are exactly 2
   -- characters, so this is the prefix to filter against.
   local prefix = ctx.line:sub(math.max(1, col - 1), col)
-  if prefix == "" then
+  -- Suppress when the prefix is the tail of a longer identifier (e.g. typing
+  -- `vim.` should not surface the `m.` digraph). Only fire when the char
+  -- immediately before the prefix is whitespace, a separator, or start of
+  -- line.
+  local before_col = col - #prefix
+  local before = before_col > 0 and ctx.line:sub(before_col, before_col) or ""
+  if prefix == "" or before:match "[%w_]" then
     callback {
       is_incomplete_forward = false,
       is_incomplete_backward = false,
