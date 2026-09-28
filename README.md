@@ -76,8 +76,8 @@ digraphs whose **both** characters are non-keyword (e.g. `->`, `+-`, `<<`),
 the bound never grows past length 0 — it would be skipped if
 `min_keyword_length >= 1`.
 
-This source registers every digraph first character as a trigger character
-and pre-filters items by the up-to-two characters before the cursor, so
+This source registers every non-keyword digraph first character as a
+trigger character and pre-filters items by the up-to-two characters before the cursor, so
 invoking the provider with an empty bound is safe; we read the prefix from
 the line ourselves.
 
@@ -121,8 +121,12 @@ On creation the source enumerates `vim.fn.digraph_getlist(true)` once and
 collects:
 
 - The completion items themselves (label, filterText, insertText, etc.).
-- The set of unique first characters of every digraph (~80 chars), exposed
+- The set of unique non-keyword first characters of every digraph, exposed
   via `get_trigger_characters()` so non-keyword openers fire the provider.
+  Keyword characters (letters, digits, `_`) are left out: blink.cmp starts a
+  fresh context on every trigger character, so registering `1` would make
+  `#1` drop the `#` context of other sources (e.g. blink-cmp-git issues).
+  Digraphs starting with them still show up through `show_on_keyword`.
 
 On every invocation `get_completions` reads up to two characters before the
 cursor, filters the items to those whose digraph starts with that prefix,

@@ -42,7 +42,12 @@ local function build_items(filter)
         detail = ("U+%04X"):format(charnr),
       })
       local first = digraph:sub(1, 1)
-      if not first_chars_seen[first] then
+      -- Keyword characters (letters, digits, `_`) must not be trigger
+      -- characters: blink.cmp starts a fresh context on every trigger
+      -- character, so typing `1` after `#` would discard the `#` context
+      -- of other sources (e.g. issue completion from blink-cmp-git).
+      -- They still show the menu through show_on_keyword.
+      if not first:match "[%w_]" and not first_chars_seen[first] then
         first_chars_seen[first] = true
         table.insert(first_chars, first)
       end
